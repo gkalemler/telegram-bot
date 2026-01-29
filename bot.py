@@ -1,36 +1,54 @@
 import os
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+from groq import Groq
 
-# Token'ı environment variable'dan oku (Render'da TELEGRAM_TOKEN olarak tanımladığın için)
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-# Debug için token'ı loga yazdır (sorun olursa logda görürsün)
 print("DEBUG: TELEGRAM_TOKEN =", TELEGRAM_TOKEN)
+print("DEBUG: GROQ_API_KEY =", GROQ_API_KEY if GROQ_API_KEY else "YOK")
 
-# Token yoksa hata ver ki hemen anlayalım
 if not TELEGRAM_TOKEN:
-    raise ValueError("TELEGRAM_TOKEN environment variable bulunamadı! Render'da TELEGRAM_TOKEN ekle.")
+    raise ValueError("TELEGRAM_TOKEN eksik!")
+if not GROQ_API_KEY:
+    raise ValueError("GROQ_API_KEY eksik! Groq'tan al.")
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Merhaba! Bot çalışıyor. 😎")
+client = Groq(api_key=GROQ_API_KEY)
 
-async def mesaj(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Gelen mesajı echo yap (yani tekrar gönder)
-    await update.message.reply_text(f"Echo: {update.message.text}")
+async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_message = update.message.text
+
+    # Grok gibi samimi, esprili prompt
+    system_prompt = """
+    Sen samimi, esprili, küfürlü konuşabilen bir kanka AI'sin. 
+    Kısa, doğal, direkt cevap ver. Kullanıcı Türkçe konuşuyorsa Türkçe devam et.
+    Strateji oyunu, sohbet, not hatırlama her şeyi yapabilirsin.
+    """
+
+    try:
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ],
+            model="llama-3.1-70b-versatile",  # En iyi free model
+            temperature=0.8,  # Esprili olsun
+            max_tokens=400,
+            stream=False
+        )
+        ai_reply = response.choices[0].message.content
+        await update.message.reply_text(ai_reply)
+    except Exception as e:
+        await update.message.reply_text(f"Amk bi hata çıktı: {str(e)}")
 
 def main():
-    # Application'ı builder ile oluştur
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
-    # Komut handler'ları ekle
-    app.add_handler(CommandHandler("start", start))
+    # Her metin mesajına cevap ver (komut hariç)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
 
-    # Herhangi bir metin mesajına cevap verecek handler
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mesaj))
-
-    # Polling ile başlat (webhook yerine basit polling kullanıyoruz)
-    print("Bot polling ile başlatılıyor...")
+    print("Grok Entegre Bot başladı! Polling...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
