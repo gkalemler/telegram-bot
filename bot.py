@@ -12,14 +12,13 @@ print("DEBUG: GROQ_API_KEY =", GROQ_API_KEY if GROQ_API_KEY else "YOK")
 if not TELEGRAM_TOKEN:
     raise ValueError("TELEGRAM_TOKEN eksik!")
 if not GROQ_API_KEY:
-    raise ValueError("GROQ_API_KEY eksik! Groq'tan al.")
+    raise ValueError("GROQ_API_KEY eksik!")
 
 client = Groq(api_key=GROQ_API_KEY)
 
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
 
-    # Grok gibi samimi, esprili prompt
     system_prompt = """
     Sen samimi, esprili, küfürlü konuşabilen bir kanka AI'sin. 
     Kısa, doğal, direkt cevap ver. Kullanıcı Türkçe konuşuyorsa Türkçe devam et.
@@ -32,8 +31,8 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
-            model="llama-3.1-70b-versatile",  # En iyi free model
-            temperature=0.8,  # Esprili olsun
+            model="llama-3.3-70b-versatile",  # Güncel model!
+            temperature=0.8,
             max_tokens=400,
             stream=False
         )
@@ -44,10 +43,7 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-
-    # Her metin mesajına cevap ver (komut hariç)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
-
     print("Grok Entegre Bot başladı! Polling...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
