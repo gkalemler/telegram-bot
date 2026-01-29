@@ -31,7 +31,7 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
-            model="llama-3.3-70b-versatile",  # Güncel model!
+            model="llama-3.3-70b-versatile",  # Güncel model
             temperature=0.8,
             max_tokens=400,
             stream=False
